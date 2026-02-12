@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>CYBER-Coin</title>
+  <meta charset="UTF-8">
+  <style>
+    body {
+      font-family: Arial;
+      background: black;
+      color: lime;
+      text-align: center;
+      padding-top: 50px;
+    }
+    .box {
+      background: #111;
+      padding: 30px;
+      border-radius: 15px;
+      display: inline-block;
+      box-shadow: 0 0 20px lime;
+    }
+    button {
+      padding: 10px 20px;
+      margin-top: 10px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    input {
+      padding: 8px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="box">
+    <h1>CYBER-Coin</h1>
+    <h2 id="price">Lade Kurs...</h2>
+    <p>Deine Coins: <span id="coins">0</span></p>
+
+    <h3>Kaufen (10 CHF = 10 Coins)</h3>
+    <button onclick="startPayment()">Jetzt bezahlen</button>
+
+    <div id="paymentArea" style="display:none;">
+      <p>Bestätigungscode eingeben:</p>
+      <input id="codeInput" placeholder="Code eingeben">
+      <br>
+      <button onclick="verifyCode()">Bestätigen</button>
+    </div>
+
+    <p id="status"></p>
+  </div>
+
+<script>
+
+let coins = Number(localStorage.getItem("cyberCoins")) || 0;
+document.getElementById("coins").innerText = coins;
+
+async function loadPrice() {
+  try {
+    const res = await fetch("/api/price");
+    const data = await res.json();
+    document.getElementById("price").innerText =
+      "1 CYBER = " + data.price_chf + " CHF";
+  } catch {
+    document.getElementById("price").innerText = "Server Fehler";
+  }
+}
+
+setInterval(loadPrice, 3000);
+loadPrice();
+
+async function startPayment() {
+  const res = await fetch("/api/create-payment");
+  const data = await res.json();
+
+  document.getElementById("status").innerText =
+    "Überweise 10 CHF via TWINT. Code: " + data.code;
+
+  document.getElementById("paymentArea").style.display = "block";
+}
+
+async function verifyCode() {
+  const code = document.getElementById("codeInput").value;
+
+  const res = await fetch("/api/verify-payment?code=" + code);
+  const data = await res.json();
+
+  if (data.success) {
+    coins += data.coins;
+    localStorage.setItem("cyberCoins", coins);
+    document.getElementById("coins").innerText = coins;
+    document.getElementById("status").innerText = "Coins erhalten!";
+  } else {
+    document.getElementById("status").innerText = "Code ungültig";
+  }
+}
+
+</script>
+
+</body>
+</html>
